@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="lib/vue.js"></script>
+    <script src="lib/vue-resource.js"></script>
+</head>
+<body>
+    <div id="myApp">
+        <components :is="arr[index]" :index.sync="index"></components>
+    </div>
+</body>
+<template id="home">
+    <div>
+        <div>
+            <a href="" @click.prevent="$emit('update:index',1)">我的购物车</a>
+        </div>
+        <div v-for="item in goodsList">
+            <h3>{{item.goodsName}}</h3>
+            <p>价格：{{item.goodsPrice | currency}}</p>
+            <p>库存：{{item.goodsStore}}</p>
+            <p>上架时间：{{item.addTime | date}}</p>
+            <p><input type="button" @click="joinCar(item._id)" value="加入购物车"></p>
+            <hr>
+        </div>
+    </div>
+</template>
+<template id="car">
+    <div>
+        <div>
+            <a href="" @click.prevent="$emit('update:index',0)">返回首页</a>
+        </div>
+        <div>
+            <img @click="upAllChecked" :src="allChecked?'images/yes.png':'images/no.png'" alt="" style="width: 13px;">合计：{{priceSum | currency}}
+        </div>
+        <div>
+            <div v-for="item in carList">
+                <p>
+                    <img @click="upCarChecked(item._id,item.isChecked)" :src="item.isChecked?'images/yes.png':'images/no.png'" alt="" style="width: 13px;">
+                    {{item.goodsName}}
+                </p>
+                <p>
+                    购买数量：
+                    <input type="button" value="-" @click="reduceBuyNum(item._id, item.goodsId)">
+                    {{item.buyNum}}
+                    <input type="button" value="+" @click="addBuyNum(item.goodsId, item._id)">
+                </p>
+                <p>商品价格{{item.goodsPrice | currency}}</p>
+                <p>商品合计{{item.buyNum * item.goodsPrice | currency}}</p>
+                <hr>
+            </div>
+        </div>
+    </div>
+</template>
+<template id="login">
+    <div>
+        <h3>登陆</h3>
+        <p>手机号：<input type="text" ref="phoneId"> <input type="button" @click="sendCode" value="发送验证码"></p>
+        <p>验证码：<input type="text" ref="code"></p>
+        <p><input type="button" @click="login" value="登陆"></p>
+    </div>
+</template>
+<script type="module">
+    import filters from "./lib/vue-filters9.js";
+    for(var key in filters){
+        Vue.filter(key,filters[key])
+    }
+    new Vue({
+        el:"#myApp",
+        data:{
+            arr:["home","car","login"],// 用于存放你的组件列表
+            index:0// 默认显示的组件下标
+        },
+        components:{
+            home:{
+                template:"#home",
+                data(){
+                    return {
+                        goodsList:[]
+                    }
+                },
+                methods:{
+                    //获得商品列表
+                    getGoodsList() {
+                        this.$http.get("http://127.0.0.1/goodsList")
+                            .then(({data})=>{
+                                this.goodsList = data.goodsList;
+                        })
+                    },
+                    // 加入购物车
+                    joinCar(goodsId){
+                        // 判断是否登陆，如果登陆则继续加入购物车，没有登陆跳转到登陆
+                        // phoneId  localStorage.phoneId
+                        if(localStorage.phoneId){
+                            this.$http.get("http://127.0.0.1/joinCar", {
+                                phoneId: localStorage.phoneId,
+                                goodsId
+                            }).then(({data}) => {
+                                // console.log(data);
+                                if(data.ok === 1) {
+                                    this.getGoodsList();
+                                } else {
+                                    alert(data.msg);
+                                }
+                            })
+                        }else{
+                            localStorage.index = 0;
+                            this.$emit("update:index",2);
+                        }
+                    }
+                },
+                mounted(){
+                    this.getGoodsList();
+                }
+
+            },
+            car:{
+                template:"#car",
+                data() {
+                    return {
+                        carList: []
+                    }
+                },
+                methods: {
+                    //得到购物车列表
+                    getCarList() {
+                        this.$http.get("http://127.0.0.1/getCarList", {
+                            phoneId: localStorage.phoneId
+                        }).then(({data}) => {
+                            // console.log(data);
+                            if(data.ok === 1) {
+                                this.carList = data.carList;
+                            } else alert(data.msg);
+                        })
+                    },
+                    //多选功能
+                    upCarChecked(carId, isChecked) {
+                        this.$http.get("http://127.0.0.1/upCarChecked",{
+                            carId,
+                            isChecked
+                        }).then(({data}) => {
+                            if(data.ok === 1) {
+                                this.getCarList();
+                            } else {
+                                alert(data.msg);
+                            }
+                        })
+                    },
+                    //全选功能
+                    upAllChecked() {
+                        this.$http.get("http://127.0.0.1/upAllChecked", {
+                            phoneId: localStorage.phoneId,
+                            isChecked: this.allChecked
+                        }).then(({data}) => {
+                            // console.log(data);
+                            if(data.ok === 1) this.getCarList();
+                            else alert(data.msg);
+                        })
+                    },
+                    //增加购买数量
+                    addBuyNum(goodsId, carId) {
+                        this.$http.get("http://127.0.0.1/addBuyNum", {
+                            carId,
+                            goodsId
+                        }).then(({data}) => {
+                            // console.log(data);
+                            if(data.ok === 1) this.getCarList();
+                            else alert(data.msg);
+                        })
+                    },
+                    //减少购买数量
+                    reduceBuyNum(carId, goodsId) {
+                        this.$http.get("http://127.0.0.1/reduceBuyNum", {
+                            carId,
+                            goodsId
+                        }). then(({data}) => {
+                            // console.log(data);
+                            if(data.ok === 1) this.getCarList();
+                            else alert(data.msg);
+                        })
+                    }
+                },
+                computed: {
+                    priceSum() {
+                        //总价
+                        let sum = 0;
+                        this.carList.forEach(v => {
+                            if(v.isChecked) 
+                                sum += v.goodsPrice * v.buyNum;
+                        });
+                        return sum;
+                    },
+                    allChecked() { //是否全选
+                        let isChecked = true;//默认全部选中
+                        for(let i = 0; i < this.carList.length; i++) {
+                            if(!this.carList[i].isChecked) {
+                                isChecked = false;
+                                break;
+                            }
+                        }
+                        return isChecked;
+                    }
+                },
+                mounted() {
+                    if(!localStorage.phoneId) {
+                        localStorage.index = 1;
+                        this.$emit("update:index", 2);
+                    } else {
+                        this.getCarList();
+                    }
+                }
+            },
+            login:{
+                template:"#login",
+                methods:{
+                    sendCode(){
+                        this.$http.get("http://127.0.0.1/sendCode",{
+                            phoneId:this.$refs.phoneId.value
+                        }).then(({data})=>{
+                            // console.log(data);
+                            if(data.ok === -1) alert(data.msg);
+                        })
+                    },
+                    login() {
+                        this.$http.post("http://127.0.0.1/login", {
+                            phoneId: this.$refs.phoneId.value,
+                            code: this.$refs.code.value
+                        }).then(({data}) => {
+                            if(data.ok === 1) {
+                                localStorage.phoneId = data.phoneId;
+                                this.$emit("update:index", localStorage.index / 1);
+                            } else alert(data.msg);
+                        })
+                    }
+                }
+            }
+        }
+    })
+</script>
+</html>

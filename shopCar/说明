@@ -1,0 +1,65 @@
+1、多用户商城
+    1、登陆
+    2、购物
+        页面：
+            1、首页
+            2、购物车
+            3、登陆
+2、数据库
+    1、用户集合 userList
+        _id
+        phoneId
+        goldNum:钱
+        regTime:注册时间
+        lastLoginTime:最后登陆时间
+    2、手机验证码集合。userCodeList
+        _id:
+        phoneId:手机号
+        code:验证码
+        sendTime:验证码发送时间
+    3、商品集合(goodsList)
+        _id:商品ID
+        goodsName;商品的名字
+        goodsPrice:商品的价格
+        goodsStore:商品的库存
+        addTime:上架时间
+    4、购物车集合carList
+        _id:
+        goodsId:商品的ID
+        phoneId:用户的手机号
+        goodsName:
+        goodsPrice:
+        isChecked:// 是否被选中，默认选中
+        buyNum
+3、storage
+************************request*****************************************
+1、下载
+    cnpm install request -S
+2、引入
+    const request = require("request");// 请求
+3、使用
+    request("http://")
+************************querystring*****************************************
+// querystring 内置模块，该模块在urlencoded与对象之间进行转换
+const querystring = require("querystring");
+const obj = {
+    a:1,
+    b:2
+}
+// 将对象转为urlencoded
+console.log(querystring.stringify(obj));//a=1&b=2
+
+const str = "a=1&b=2";
+// 将urlencoded转为对象
+console.log(querystring.parse(str));// { a: '1', b: '2' }
+*****************************************************************
+发送短信：
+    1、地址：https://www.juhe.cn
+      注册，个人认证
+    2、我的接口 --》申请新数据
+        即时通讯---》短信API服务
+        点击申请
+    3、设置模板
+        我的接口-》模板--》提交审核
+    4、调用接口
+
